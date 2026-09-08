@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Luna 英语助手</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <header><span class="moon">◔</span><div><h1>Luna</h1><p>YouTube 英语学习助手</p></div></header>
+  <p class="intro">用你的 ChatGPT 订阅，读懂视频里的生词和短语。</p>
+  <section><span class="label">本机连接</span><p id="status" role="status">点击检测，确认本地程序与订阅登录。</p><button id="check">检测 Codex 连接</button></section>
+  <section><label for="level">我的英语水平</label><select id="level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select><p class="hint">只讲解高于所选等级的词语。难度由模型估计。</p></section>
+  <section class="steps"><span class="label">第一次使用</span><ol><li>运行项目中的 <code>scripts/install.ps1</code>。</li><li>终端运行 <code>codex login</code>，用 ChatGPT 账户登录。</li><li>打开 YouTube 英文视频。</li><li>点击「开始学习」，自动开启并选择英文字幕。</li></ol></section>
+  <section><button id="reload">重新加载插件</button><p class="hint">项目更新后点击，再刷新 YouTube 页面。</p></section>
+  <footer><button class="text" id="reset-known">清空已掌握词语</button><button class="text" id="clear-cache">清空分析记录</button></footer>
+  <p class="hint" id="notice">讲解与设置保存在本机；分析时字幕发送给 Codex。不会改用 API 计费。</p>
+  <script type="module" src="popup.js"></script>
+</body></html>

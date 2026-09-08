@@ -1,0 +1,14 @@
+{
+  "name": "youtube-luna-tutor",
+  "version": "0.1.3",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "install:host": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1"
+  }
+}

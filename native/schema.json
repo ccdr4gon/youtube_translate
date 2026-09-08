@@ -1,0 +1,61 @@
+{
+  "type": "object",
+  "properties": {
+    "terms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "cue_id": {
+            "type": "string"
+          },
+          "term": {
+            "type": "string"
+          },
+          "lemma": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "word",
+              "phrase",
+              "slang"
+            ]
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1",
+              "C2"
+            ]
+          },
+          "meaning": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cue_id",
+          "term",
+          "lemma",
+          "kind",
+          "level",
+          "meaning",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "terms"
+  ],
+  "additionalProperties": false
+}
