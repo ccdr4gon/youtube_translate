@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Luna · YouTube 英语助手",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "通过本机 Codex 和 ChatGPT 订阅，为 YouTube 英文字幕提供分级词语讲解。",
   "minimum_chrome_version": "120",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArkhPJ67L4t97LYVt8tzx8q6b+J5szxYjA6rtLw+gXLnl36800bfKB3YLVnc615EBzVi9hIhlZ5+vzodj3cNNhbkHKGyNIyCZkAiFtljsLqJumqEi7Tpot7azVUuux8qxK0zfe8mgCdc40eueFuSzl4gx3ednnfzVHwNiglabFtF+Z+9GwQV2TgYy6OWL+OqDYjfLfYfJlRLKmqWaPnBi8GR32FNqN+sgsYdJ+0pqnLaRF4DLvpUSvkewT98KUgDN4p7ZKb94yZZEn/kxY0jfX4O6Cu18zoApCuj8Z+LFQbPOaMPeXRWpknRtqH4biuioQeQXwu9cMM86tpRDzwFKvwIDAQAB",

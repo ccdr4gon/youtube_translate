@@ -128,7 +128,7 @@ try {
     await page.goto('https://www.youtube.com/watch?v=LiveFixture');
     await page.getByRole('button', { name: '开始学习', exact: true }).click();
     await page.getByText('把它视为理所当然', { exact: true }).waitFor({ timeout: 15000 });
-    assert.ok((await page.locator('.source').textContent()).includes('当前字幕模式'));
+    assert.ok((await page.locator('.status').getAttribute('title')).includes('当前字幕模式'));
     await page.getByRole('button', { name: '停止学习', exact: true }).click();
     for (const scenario of ['EnglishFixture', 'TranslatedFixture', 'AutoFixture']) {
       await page.goto(`https://www.youtube.com/watch?v=${scenario}`);

@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { ROOT, SCHEMA, resolveCodex, TUTOR_INSTRUCTIONS, friendlyError } from './codex.mjs';
+import { ROOT, SCHEMA, resolveCodex, TUTOR_INSTRUCTIONS, batchPrompt, friendlyError } from './codex.mjs';
 import { MODEL, validateRequest, validateResult } from '../extension/core.js';
 
 // Emit only complete JSON objects inside terms, even across escaped quotes/chunk boundaries.
@@ -80,7 +80,7 @@ export function createAppServerRunner({ command = resolveCodex(), prefixArgs = [
         }
       } else notify(message);
     });
-    ready = rpc('initialize', { clientInfo: { name: 'youtube_luna', version: '0.1.3' }, capabilities: { experimentalApi: true } })
+    ready = rpc('initialize', { clientInfo: { name: 'youtube_luna', version: '0.1.4' }, capabilities: { experimentalApi: true } })
       .then(() => child.stdin.write('{"method":"initialized"}\n'));
     return ready;
   }
@@ -136,7 +136,7 @@ export function createAppServerRunner({ command = resolveCodex(), prefixArgs = [
       // Attach a handler before the start RPC so a cancellation during setup cannot go unhandled.
       completion.catch(() => {});
       await rpc('turn/start', { threadId: thread.id, effort: 'none', input: [{ type: 'text',
-        text: `Analyze only this new batch. SUBTITLE_DATA=${JSON.stringify({ CONTEXT: request.context, TARGET: request.cues })}` }], outputSchema: schema });
+        text: batchPrompt(request) }], outputSchema: schema });
       let parsed;
       try { parsed = JSON.parse(await completion); } catch (error) {
         if (!(error instanceof SyntaxError)) throw error;

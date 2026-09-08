@@ -3,7 +3,7 @@
   window.__youtubeLunaContent = true;
   const core = await import(chrome.runtime.getURL('core.js'));
   const { createPanel } = await import(chrome.runtime.getURL('panel.js'));
-  const { cleanText, normalizeCues, LiveCaptions, liveBatch, transcriptBatch, visibleTerms, DEFAULT_SETTINGS } = core;
+  const { cleanText, normalizeCues, LiveCaptions, liveBatch, transcriptBatch, visibleTerms, nearbySentences, pauseTerms, DEFAULT_SETTINGS } = core;
   const stored = await chrome.storage.local.get('settings');
   let settings = { ...DEFAULT_SETTINGS, ...stored.settings };
   let id = '', session = crypto.randomUUID(), active = false, starting = false, busy = false;
@@ -15,6 +15,8 @@
   let captionsReady = false;
   let analyzedCount = 0, analysisId = '';
   let receivedAt = new Map();
+  let paused = false, pauseWindow = [], pauseResults = [], pauseKey = '', pauseDone = false;
+  let analysisMode = 'play';
 
   const getId = () => new URL(location.href).searchParams.get('v') || location.pathname.match(/^\/shorts\/([\w-]+)/)?.[1] || '';
   const video = () => document.querySelector('#movie_player video') || document.querySelector('video');
@@ -28,6 +30,7 @@
     session = crypto.randomUUID();
     void chrome.runtime.sendMessage({ type: 'ytl:cancel', session: old }).catch(() => {});
     busy = false; analysisId = '';
+    paused = false; pauseWindow = []; pauseResults = []; pauseKey = ''; pauseDone = false;
   }
   function readTrack() {
     if (!id) return;
@@ -75,7 +78,8 @@
   function render() {
     panel.host.hidden = !id;
     const time = video()?.currentTime || 0;
-    const visible = visibleTerms([...terms], settings.level, settings.known, time);
+    const visible = paused ? pauseTerms([...pauseResults, ...terms], pauseWindow) :
+      visibleTerms(terms, settings.level, settings.known, time);
     let emptyTitle = '只讲你需要的词', emptyText = '点击「开始学习」，自动开启并选择英文字幕。建议先用 B1 试试，再按自己的水平调整。';
     if (active || analyzedOnce) {
       emptyTitle = analyzedCount ? '已分析，暂无符合条件的词' : busy ? '正在读懂第一段' : '等待下一段字幕';
@@ -83,11 +87,15 @@
         '字幕会排队分析，滚动不会清空待学习词。首次回复需要等待。';
       if (!track.length && !live.cues.length) { emptyTitle = '等待英文字幕'; emptyText = '正在自动开启 English 字幕。也可手动展开英文视频文稿，以便提前分析。'; }
     }
-    if (settings.level === 'C2') { emptyTitle = '你已选择最高等级'; emptyText = '本版只显示高于所选等级的词。要查看 C2 词语，请选择 C1。'; }
+    if (!paused && settings.level === 'C2') { emptyTitle = '你已选择最高等级'; emptyText = '本版只显示高于所选等级的词。要查看 C2 词语，请选择 C1。'; }
+    if (paused) {
+      emptyTitle = pauseWindow.length ? '正在补充附近三句' : '还没有可用的英文字幕';
+      emptyText = pauseWindow.length ? '暂停期间显示所有等级，已有讲解立即显示，新讲解逐条补上。' : '播放几秒收集字幕后，再暂停查看。';
+    }
     const pending = track.length ? 0 : live.cues.filter(c => !liveDone.has(`${c.id}:${c.text}`)).length;
-    const progress = busy ? `正在分析 · 已等待 ${Math.floor((Date.now() - lastAnalysis) / 1000)} 秒${pending ? ` · 未完成 ${pending} 条字幕（含处理中）` : ''}` : status;
+    const progress = paused ? (busy ? '暂停 · 正在补全附近三句…' : pauseDone ? `暂停 · 全等级 · ${visible.length} 个表达` : '暂停 · 附近三句') : busy ? `正在分析 · 已等待 ${Math.floor((Date.now() - lastAnalysis) / 1000)} 秒${pending ? ` · 未完成 ${pending} 条字幕（含处理中）` : ''}` : status;
     panel.update({ level: settings.level, active, starting, busy, error, status: progress, source,
-      terms: visible, meta, emptyTitle, emptyText });
+      terms: visible, meta, emptyTitle, emptyText, paused, pauseKey });
   }
 
   function resetVideo(nextId) {
@@ -146,35 +154,77 @@
     return liveBatch(live.cues, time, liveDone, Date.now() - lastChanged > 600);
   }
 
+  function syncPause(player) {
+    if (!player.paused) {
+      if (paused) { newSession(); lastAnalysis = 0; status = '继续播放 · 已恢复等级筛选'; }
+      return;
+    }
+    const windowCues = nearbySentences(track.length ? track : live.cues, player.currentTime);
+    const key = JSON.stringify(windowCues);
+    if (!paused || key !== pauseKey) {
+      newSession(); paused = true; pauseWindow = windowCues; pauseKey = key;
+      lastAnalysis = 0;
+    }
+    if (pauseWindow.length && !busy && !pauseDone) {
+      void analyze({ cues: pauseWindow, context: [], mode: 'pause' });
+    }
+  }
+
+  // Native media events switch views immediately, without waiting for the polling tick.
+  for (const eventName of ['pause', 'play', 'seeked']) {
+    document.addEventListener(eventName, event => {
+      const player = video();
+      if (event.target !== player || !active || !captionsReady || inAd ||
+          document.getElementById('movie_player')?.classList.contains('ad-showing')) return;
+      if (eventName === 'seeked') {
+        lastTime = player.currentTime; lastTick = Date.now();
+        if (!player.paused) {
+          newSession(); live = new LiveCaptions(); liveDone.clear(); lastAnalysis = 0;
+        }
+      }
+      if (player.paused && !track.length) {
+        const text = [...document.querySelectorAll('.ytp-caption-segment')].map(n => n.textContent).join(' ');
+        if (/[a-z]/i.test(text) && live.add(text, player.currentTime)) lastChanged = Date.now();
+      }
+      syncPause(player); render();
+    }, true);
+  }
+
   async function analyze(batch) {
     const epoch = session;
     analysisId = crypto.randomUUID();
+    analysisMode = batch.mode === 'pause' ? 'pause' : 'play';
     lastAnalysis = Date.now();
     busy = true; error = false; status = track.length ? '正在准备即将出现的词语…' : '正在分析刚刚出现的字幕…'; render();
     try {
-      const result = await send('analyze', { analysisId, payload: { videoId: id, cues: batch.cues, context: batch.context } });
+      const result = await send('analyze', { analysisId, payload: { videoId: id, cues: batch.cues, context: batch.context, mode: batch.mode } });
       if (epoch !== session) return;
-      if (batch.key) completed.add(batch.key);
-      else for (const cue of batch.cues) liveDone.add(`${cue.id}:${cue.text}`);
-      analyzedCount += batch.cues.length;
+      if (batch.mode === 'pause') pauseDone = true;
+      else {
+        if (batch.key) completed.add(batch.key);
+        else for (const cue of batch.cues) liveDone.add(`${cue.id}:${cue.text}`);
+        analyzedCount += batch.cues.length;
+      }
       receiveTerms(result);
       analyzedOnce = true;
       status = `已分析 ${analyzedCount} 条字幕 · 识别 ${terms.length} 个表达`;
       meta = result.cached ? '已复用本地结果 · 未请求模型' : `Luna · 首条 ${((result.firstTermMs || result.elapsedMs || 0) / 1000).toFixed(1)} 秒 · 全段 ${((result.elapsedMs || 0) / 1000).toFixed(1)} 秒`;
     } catch (failure) {
       if (epoch !== session) return;
-      active = false; error = true; status = failure.message;
+      active = false; paused = false; error = true; status = failure.message;
     } finally { if (epoch === session) { busy = false; render(); } }
   }
 
   function receiveTerms(result) {
-    const combined = new Map(terms.map(t => [`${t.start}:${t.term}`, t]));
+    const destination = analysisMode === 'pause' ? pauseResults : terms;
+    const combined = new Map(destination.map(t => [`${t.start}:${t.term}`, t]));
     for (const term of result.terms) {
       const key = `${term.start}:${term.term}`;
       if (!receivedAt.has(key)) receivedAt.set(key, Math.max(0, (video()?.currentTime || 0) - term.start));
       combined.set(key, { ...term, delaySeconds: receivedAt.get(key) });
     }
-    terms = [...combined.values()];
+    if (analysisMode === 'pause') pauseResults = [...combined.values()];
+    else terms = [...combined.values()];
   }
   chrome.runtime.onMessage.addListener(message => {
     if (message.type !== 'ytl:progress' || message.session !== session || message.analysisId !== analysisId || !busy) return;
@@ -222,8 +272,9 @@
         if (!track.length && selectedLanguage && !/^en(?:-|$)/i.test(selectedLanguage)) {
           status = '请将播放器字幕改为 English，再点击「重新读取字幕」。'; render(); return;
         }
-        if (!busy) {
-          const batch = track.length ? (!player.paused || !analyzedOnce ? transcriptBatch(track, time, completed, player.paused ? 0 : 40) : null) :
+        syncPause(player);
+        if (!paused && !busy) {
+          const batch = track.length ? transcriptBatch(track, time, completed, 40) :
             now - lastAnalysis >= 800 ? batchForLive(time) : null;
           if (batch) void analyze(batch);
         }

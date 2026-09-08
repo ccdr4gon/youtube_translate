@@ -1,6 +1,6 @@
 export const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 export const MODEL = 'gpt-5.6-luna';
-export const PROMPT_VERSION = 2;
+export const PROMPT_VERSION = 3;
 export const HOST_NAME = 'com.local.youtube_luna';
 export const DEFAULT_SETTINGS = { level: 'B1', known: [] };
 
@@ -89,6 +89,45 @@ export function visibleTerms(terms, level, known, time) {
     });
 }
 
+// Join subtitle fragments into sentences; unpunctuated ASR text falls back to
+// short speech groups instead of treating an entire video as one sentence.
+export function nearbySentences(cues, time) {
+  const sentences = [];
+  let current = null;
+  const flush = () => {
+    if (current) sentences.push({ ...current, id: `pause-${sentences.length}-${current.start}` });
+    current = null;
+  };
+  for (const cue of cues) {
+    if (current && (cue.start - current.end > 2 || cue.start - current.start >= 12 || current.text.length + cue.text.length > 800)) flush();
+    const parts = cue.text.match(/[^.!?]+(?:[.!?]+["'”’]?|$)/g) || [cue.text];
+    for (const part of parts) {
+      const text = cleanText(part);
+      if (!text) continue;
+      if (!current) current = { start: cue.start, end: cue.end, text };
+      else { current.text += ` ${text}`; current.end = Math.max(current.end, cue.end); }
+      if (/[.!?]["'”’]?$/.test(text)) flush();
+    }
+  }
+  flush();
+  if (!sentences.length) return [];
+  let index = sentences.findIndex(c => c.end > time);
+  if (index < 0) index = sentences.length - 1;
+  const from = Math.max(0, Math.min(index - 1, sentences.length - 3));
+  return sentences.slice(from, from + 3);
+}
+
+export function pauseTerms(terms, cues) {
+  const seen = new Set();
+  return terms.filter(term => cues.some(cue => term.start <= cue.end && (term.end ?? term.start) >= cue.start &&
+    wordKey(cue.text).includes(wordKey(term.term))))
+    .filter(term => {
+      const key = wordKey(term.lemma || term.term);
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+}
+
 export function validateRequest(value) {
   if (!value || !/^[\w-]{1,80}$/.test(value.videoId ?? '')) throw new Error('视频标识无效。');
   if (!Array.isArray(value.cues) || !value.cues.length || value.cues.length > 40) throw new Error('字幕数量无效。');
@@ -96,14 +135,14 @@ export function validateRequest(value) {
   const context = normalizeCues(value.context ?? []).slice(-4);
   if (cues.length !== value.cues.length || new Set(cues.map(c => c.id)).size !== cues.length) throw new Error('字幕内容或编号无效。');
   if (JSON.stringify({ cues, context }).length > 16000) throw new Error('这一段字幕过长，请缩短后重试。');
-  return { videoId: value.videoId, cues, context };
+  return { videoId: value.videoId, cues, context, mode: value.mode === 'pause' ? 'pause' : 'play' };
 }
 
 export function validateResult(value, cues) {
   if (!value || !Array.isArray(value.terms)) throw new Error('Codex 返回格式不正确，请重试。');
   const byId = new Map(cues.map(c => [c.id, c]));
   const terms = [];
-  for (const term of value.terms.slice(0, 16)) {
+  for (const term of value.terms.slice(0, 40)) {
     const cue = byId.get(String(term.cue_id));
     if (!cue || !LEVELS.includes(term.level) || !['word', 'phrase', 'slang'].includes(term.kind)) continue;
     const text = cleanText(term.term).slice(0, 120);
@@ -111,7 +150,12 @@ export function validateResult(value, cues) {
     if (!text || !wordKey(cue.text).includes(wordKey(text)) || !cleanText(term.meaning)) continue;
     terms.push({ term: text, lemma: cleanText(term.lemma || text).slice(0, 120), level: term.level,
       kind: term.kind, meaning: cleanText(term.meaning).slice(0, 300),
-      note: cleanText(term.note).slice(0, 400), example: cleanText(term.example).slice(0, 300),
+      note: cleanText(term.note).slice(0, 400),
+      words: (Array.isArray(term.words) ? term.words : []).slice(0, 4)
+        .filter(word => word && cleanText(word.word) && cleanText(word.meaning) &&
+          wordKey(text).split(/[^a-z'-]+/).includes(wordKey(word.word)))
+        .map(word => ({ word: cleanText(word.word).slice(0, 60), meaning: cleanText(word.meaning).slice(0, 120) })),
+      example: cleanText(term.example).slice(0, 300),
       example_zh: cleanText(term.example_zh).slice(0, 300),
       cue_id: cue.id, quote: cue.text, start: cue.start, end: cue.end });
   }

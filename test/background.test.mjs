@@ -29,6 +29,13 @@ test('扩展收到部分讲解即推送页面，完成后才缓存，取消后�
   assert.equal(pageMessages[0].message.analysisId,'batch1');assert.equal(complete,false);assert.equal(storage.cacheIndex,undefined);
   receiveNative({id:job.id,ok:true,result:{terms:[{term:'sick'}],firstTermMs:3000}});
   assert.equal((await result).ok,true);assert.equal(storage.cacheIndex.length,1);
+  const paused=new Promise(resolve=>receiveContent({type:'ytl:analyze',session:'paused',analysisId:'pause-batch',payload:{...payload,mode:'pause'}},sender,resolve));
+  await new Promise(resolve=>setTimeout(resolve,20));
+  const pauseJob=sent.filter(m=>m.type==='analyze').at(-1);
+  assert.equal(pauseJob.payload.mode,'pause','同一字幕的暂停请求不能复用仅选 5 词的播放缓存');
+  receiveNative({id:pauseJob.id,ok:true,result:{terms:[{term:'view',level:'A1'}]}});
+  assert.equal((await paused).result.terms[0].term,'view');
+  assert.equal(storage.cacheIndex.length,2);
   const second=new Promise(resolve=>receiveContent({type:'ytl:analyze',session:'s2',analysisId:'batch2',payload:{...payload,videoId:'other-video'}},sender,resolve));
   await new Promise(resolve=>setTimeout(resolve,20));
   const lastJob=sent.filter(m=>m.type==='analyze').at(-1);
