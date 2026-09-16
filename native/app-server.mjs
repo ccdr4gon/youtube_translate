@@ -63,7 +63,7 @@ export function createAppServerRunner({ command = resolveCodex(), prefixArgs = [
     child = processHandle;
     processHandle.stderr.on('data', () => {});
     processHandle.stdin.on('error', () => {});
-    processHandle.on('error', () => { if (child === processHandle) close(new Error('无法启动 Codex，请重新运行 scripts/install.ps1。')); });
+    processHandle.on('error', () => { if (child === processHandle) close(new Error('无法启动 Codex，请重新运行 npm run install:host。')); });
     processHandle.on('close', () => { if (child === processHandle) close(new Error('Codex 连接已关闭，请重试。')); });
     createInterface({ input: processHandle.stdout }).on('line', line => {
       if (child !== processHandle) return;
@@ -80,7 +80,7 @@ export function createAppServerRunner({ command = resolveCodex(), prefixArgs = [
         }
       } else notify(message);
     });
-    ready = rpc('initialize', { clientInfo: { name: 'youtube_luna', version: '0.1.4' }, capabilities: { experimentalApi: true } })
+    ready = rpc('initialize', { clientInfo: { name: 'youtube_luna', version: '0.1.5' }, capabilities: { experimentalApi: true } })
       .then(() => child.stdin.write('{"method":"initialized"}\n'));
     return ready;
   }

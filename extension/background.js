@@ -18,7 +18,7 @@ function connect() {
   });
   port.onDisconnect.addListener(() => {
     const detail = chrome.runtime.lastError?.message ?? '';
-    const error = new Error(`本地程序未连接。请先运行 scripts/install.ps1，再重新检测。${detail ? `（${detail}）` : ''}`);
+    const error = new Error(`本地程序未连接。请先运行 npm run install:host，再重新检测。${detail ? `（${detail}）` : ''}`);
     port = null;
     for (const request of pending.values()) { clearTimeout(request.timer); request.reject(error); }
     pending.clear();

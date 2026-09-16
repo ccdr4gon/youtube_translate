@@ -1,8 +1,8 @@
 # Luna · YouTube 英语学习助手
 
-Chrome / Edge 插件，通过本机 Codex CLI 的 **ChatGPT 订阅登录**，使用 `gpt-5.6-luna` 讲解英文字幕中的词和短语。当前版本针对 Windows 自用，不需要 API key。
+Chrome / Edge 插件，通过本机 Codex CLI 的 **ChatGPT 订阅登录**，使用 `gpt-5.6-luna` 讲解英文字幕中的词和短语。支持 Windows 和 macOS 上的 Chrome / Edge / Chromium，不需要 API key。macOS 安装支持已补齐；当前开发机为 Windows，尚未做 Mac 真机浏览器验证。
 
-## 第一次运行
+## Windows 第一次运行
 
 需要 Node.js 22+、Codex CLI（本版验证使用 0.153.4）、Chrome 或 Edge。
 
@@ -23,6 +23,60 @@ Chrome / Edge 插件，通过本机 Codex CLI 的 **ChatGPT 订阅登录**，使
 4. 打开或刷新一个 YouTube 英文视频，在右下角面板点击“开始学习”。插件会**自动开启 CC，并切换到英文字幕**。
 
 没有 `npm install` 或打包步骤：运行代码只使用 Node 内置模块，`extension` 目录可以直接加载。浏览器插件必须由你在浏览器扩展页加载一次。
+
+## macOS 第一次运行
+
+需要 Node.js 22+、Codex CLI 和 Chrome、Edge 或 Chromium。Safari 不适用这个浏览器插件。Intel 和 Apple Silicon 使用相同的项目安装命令，Node / Codex 本身需安装适合当前 Mac 的版本。
+
+1. 先在 Mac 终端确认工具可用：
+
+   ```sh
+   node --version
+   codex --version
+   ```
+
+   缺少 Node 时，从 [Node.js 官网](https://nodejs.org/)安装 22 或更新版本。缺少 Codex 时，按 [OpenAI 官方 Codex CLI 安装说明](https://learn.chatgpt.com/docs/codex/cli)安装。仅安装或登录 ChatGPT Desktop 不代表插件已经可以调用 CLI，以以上命令和后面的连接检测为准。
+
+2. 将项目克隆到固定目录，注册本地连接，并在这台 Mac 登录：
+
+   ```sh
+   mkdir -p ~/code
+   cd ~/code
+   git clone https://github.com/ccdr4gon/youtube_translate.git
+   cd youtube_translate
+   npm run install:host
+   codex login
+   npm run doctor
+   ```
+
+   如果已经克隆过项目，在原目录执行 `git pull` 和 `npm run install:host` 即可。登录选择 ChatGPT 账户；不会改用 API key。项目没有依赖安装或构建步骤，无须在项目内运行 `npm install`。
+
+3. 在 Chrome 打开 `chrome://extensions`（Edge 为 `edge://extensions`），开启开发者模式，点击“加载已解压的扩展程序”，选择 `~/code/youtube_translate/extension`。macOS 文件选择窗口可按 Cmd+Shift+G 输入该路径。
+4. 点击 Luna 图标 →“检测 Codex 连接”，应显示“已通过 ChatGPT 订阅登录”。再刷新 YouTube 视频，点击“开始学习”。无需保持终端、Codex 或 ChatGPT Desktop 窗口打开。
+
+安装仅登记当前 macOS 用户，不使用 sudo；生成可执行启动脚本，并固定当前 Node 和 Codex 的绝对路径，兼容 Homebrew / nvm 的常见安装位置。浏览器登记文件位于：
+
+- `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.local.youtube_luna.json`
+- `~/Library/Application Support/Microsoft Edge/NativeMessagingHosts/com.local.youtube_luna.json`
+- `~/Library/Application Support/Chromium/NativeMessagingHosts/com.local.youtube_luna.json`
+
+这些路径针对浏览器稳定版和默认用户数据目录。Beta / Dev / Canary 或自定义用户数据目录尚未自动登记。
+
+若找不到 Codex，可以显式指定：
+
+```sh
+npm run install:host -- --codex-path "$(command -v codex)"
+```
+
+更新 Node / Codex 后如果连接失效，重新执行安装命令；不要删除或移动项目文件夹。换项目目录时，先在原目录卸载本地登记，再在新目录安装。两台电脑各自保存已掌握词、等级、面板位置和分析缓存，目前不会同步；不要把 Windows 的 `.local` 或登录文件复制到 Mac。
+
+卸载 Mac 的本地连接（保留项目和登录信息）：
+
+```sh
+npm run install:host -- --uninstall
+```
+
+仅想检查生成文件而暂不登记浏览器，可运行 `npm run install:host -- --prepare-only`。
 
 ## 如何使用
 
@@ -57,9 +111,9 @@ npm run check     # 语法、JSON、扩展文件检查
 npm test          # 核心行为与本机通信测试，模型回复用测试替身
 ```
 
-- **本地程序未连接**：重新运行安装脚本，确认扩展 ID，然后再次检测。Codex 更新导致可执行文件位置改变时，也重新运行安装脚本。
+- **本地程序未连接**：运行 `npm run install:host`，确认扩展 ID，然后再次检测。Codex 更新导致可执行文件位置改变时，也重新运行安装脚本。
 - **CLI 找不到**：可指定实际可执行文件：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -CodexPath 'C:\path\to\codex.exe'`。
-- **未登录**：在普通 Windows 终端运行 `codex login`。受限或隔离的执行环境可能无法读取 Windows 登录凭据；以你正常终端和插件的检测结果为准。
+- **未登录**：在当前电脑的普通终端运行 `codex login`。受限或隔离的执行环境可能无法读取 Windows 登录凭据；以你正常终端和插件的检测结果为准。
 - **当前是 API key 登录**：请通过 `codex login` 切换到 ChatGPT 账户。本项目会拒绝 API key 登录，不自动切换计费方式。
 - **额度不足**：等待订阅额度恢复后手动重试。与其他 Codex 使用共享账户额度。
 - **更新本项目后**：在浏览器扩展管理页重新加载 Luna，再刷新 YouTube。也可在工具栏 Luna 弹窗点击“重新加载插件”。单独刷新视频可能仍使用 Chrome 缓存的旧内容脚本。
@@ -78,11 +132,13 @@ npm test          # 核心行为与本机通信测试，模型回复用测试替
 - `native/app-server.mjs`：常驻 Codex 连接、逐条解析讲解、取消与订阅登录检查。
 - `native/codex.mjs`：共享教学要求和 CLI 路径查找，保留单次命令调用；固定调用 `gpt-5.6-luna`，通过标准输入传字幕，通过固定格式读取结果。
 - `native/host.mjs`：浏览器启动的本地程序；串行安排模型请求。
-- `scripts/install.ps1`：注册 Chrome、Edge、Chromium 的当前用户本机通信入口。
+- `scripts/install.mjs`：统一安装入口，自动选择当前系统。
+- `scripts/install-macos.mjs`：生成 macOS 启动脚本并登记 Chrome、Edge、Chromium。
+- `scripts/install.ps1`：保留 Windows 当前用户的注册表安装方式。
 
 设置、已掌握名单和分析结果保存在浏览器扩展存储中。分析时，一小段字幕及前文通过 Codex 发送给 OpenAI。模型仍在云端计算。项目不读取或复制 `auth.json`，不在浏览器存储登录凭据；Codex 自行管理订阅登录。模型执行使用只读模式并关闭 shell、浏览器、插件等不需要的能力；字幕只作为待分析数据。
 
-卸载本地连接：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -Uninstall`，然后在浏览器移除扩展。此操作保留项目文件。
+Windows 卸载本地连接：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -Uninstall`，然后在浏览器移除扩展。此操作保留项目文件。
 
 ## 接入依据
 
@@ -90,5 +146,6 @@ npm test          # 核心行为与本机通信测试，模型回复用测试替
 - [Codex App Server 与逐条输出](https://learn.chatgpt.com/docs/app-server)
 - [Luna 支持的推理设置](https://developers.openai.com/api/docs/models/gpt-5.6-luna)
 - [Codex 程序调用与固定格式输出](https://learn.chatgpt.com/docs/non-interactive-mode)
+- [Edge 本机通信与 macOS 登记路径](https://learn.microsoft.com/en-us/microsoft-edge/extensions/developer-guide/native-messaging)
 - [Chrome 本机通信](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging)
 - [YouTube 官方字幕下载权限限制](https://developers.google.com/youtube/v3/docs/captions/download)

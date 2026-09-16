@@ -57,7 +57,7 @@ export function createCodexRunner({ command = resolveCodex(), prefixArgs = [], t
       signal?.addEventListener('abort', abort, { once: true });
       const timer = setTimeout(() => kill(new Error('分析超过 90 秒，已停止。请稍后重试。')), timeout);
       const cleanup = () => { finished = true; clearTimeout(timer); signal?.removeEventListener('abort', abort); };
-      child.on('error', error => { cleanup(); reject(new Error(error.code === 'ENOENT' ? '找不到 Codex CLI，请重新运行 scripts/install.ps1。' : '无法启动 Codex CLI。')); });
+      child.on('error', error => { cleanup(); reject(new Error(error.code === 'ENOENT' ? '找不到 Codex CLI，请重新运行 npm run install:host。' : '无法启动 Codex CLI。')); });
       child.stdout.setEncoding('utf8');
       child.stderr.setEncoding('utf8');
       child.stdout.on('data', chunk => {
