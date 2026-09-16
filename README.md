@@ -113,6 +113,7 @@ npm run check     # 语法、JSON、扩展文件检查
 npm test          # 核心行为与本机通信测试，模型回复用测试替身
 ```
 
+- **Mac 上 doctor 正常但提示 Native host has exited**：运行 `npm run doctor:host`，检查浏览器实际登记的启动脚本、退出码和错误输出。Edge 使用 `npm run doctor:host -- edge`。这项检查不会调用模型，也不会改变登录状态；终端通过不代表浏览器已获得相同的文件访问权限。
 - **本地程序未连接**：运行 `npm run install:host`，确认扩展 ID，然后再次检测。Codex 更新导致可执行文件位置改变时，也重新运行安装脚本。
 - **CLI 找不到**：可指定实际可执行文件：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -CodexPath 'C:\path\to\codex.exe'`。
 - **未登录**：在当前电脑的普通终端运行 `codex login`。受限或隔离的执行环境可能无法读取 Windows 登录凭据；以你正常终端和插件的检测结果为准。

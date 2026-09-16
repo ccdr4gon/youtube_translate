@@ -8,6 +8,7 @@
     "check": "node scripts/check.mjs",
     "test": "node scripts/test.mjs",
     "doctor": "node scripts/doctor.mjs",
+    "doctor:host": "node scripts/doctor-host.mjs",
     "smoke": "node scripts/smoke.mjs",
     "install:host": "node scripts/install.mjs"
   }
