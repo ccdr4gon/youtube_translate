@@ -38,8 +38,8 @@ if ([System.IO.Path]::GetExtension($CodexPath) -ne '.exe') { throw 'Use the actu
 foreach ($taskPath in @($taskRoot, $taskNodePath)) {
   if ($taskPath -match '[%"\r\n]') { throw 'Please use an installation folder without percent signs or quotes.' }
 }
-$taskMajorVersion = [int]((& $taskNodePath --version).TrimStart('v').Split('.')[0])
-if ($taskMajorVersion -lt 22) { throw 'Node.js 22 or newer is required.' }
+$taskNodeVersion = [version]((& $taskNodePath --version).Trim().TrimStart('v'))
+if ($taskNodeVersion -lt [version]'20.20.2') { throw 'Node.js 20.20.2 or newer is required.' }
 [System.IO.Directory]::CreateDirectory($taskLocal) | Out-Null
 $taskEncoding = New-Object System.Text.UTF8Encoding($false)
 $taskRuntime = @{ codexPath = $CodexPath } | ConvertTo-Json

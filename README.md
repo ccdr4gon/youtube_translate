@@ -2,9 +2,11 @@
 
 Chrome / Edge 插件，通过本机 Codex CLI 的 **ChatGPT 订阅登录**，使用 `gpt-5.6-luna` 讲解英文字幕中的词和短语。支持 Windows 和 macOS 上的 Chrome / Edge / Chromium，不需要 API key。macOS 安装支持已补齐；当前开发机为 Windows，尚未做 Mac 真机浏览器验证。
 
+已在 Windows 上使用 Node.js 20.20.2 和 24.15.0 运行完整自动测试。macOS 真机连接仍需按下方步骤检测。
+
 ## Windows 第一次运行
 
-需要 Node.js 22+、Codex CLI（本版验证使用 0.153.4）、Chrome 或 Edge。
+需要 Node.js 20.20.2+、Codex CLI（本版验证使用 0.153.4）、Chrome 或 Edge。
 
 1. 在项目目录打开 PowerShell，运行：
 
@@ -26,7 +28,7 @@ Chrome / Edge 插件，通过本机 Codex CLI 的 **ChatGPT 订阅登录**，使
 
 ## macOS 第一次运行
 
-需要 Node.js 22+、Codex CLI 和 Chrome、Edge 或 Chromium。Safari 不适用这个浏览器插件。Intel 和 Apple Silicon 使用相同的项目安装命令，Node / Codex 本身需安装适合当前 Mac 的版本。
+需要 Node.js 20.20.2+、Codex CLI 和 Chrome、Edge 或 Chromium。Safari 不适用这个浏览器插件。Intel 和 Apple Silicon 使用相同的项目安装命令，Node / Codex 本身需安装适合当前 Mac 的版本。
 
 1. 先在 Mac 终端确认工具可用：
 
@@ -35,7 +37,7 @@ Chrome / Edge 插件，通过本机 Codex CLI 的 **ChatGPT 订阅登录**，使
    codex --version
    ```
 
-   缺少 Node 时，从 [Node.js 官网](https://nodejs.org/)安装 22 或更新版本。缺少 Codex 时，按 [OpenAI 官方 Codex CLI 安装说明](https://learn.chatgpt.com/docs/codex/cli)安装。仅安装或登录 ChatGPT Desktop 不代表插件已经可以调用 CLI，以以上命令和后面的连接检测为准。
+   缺少 Node 时，从 [Node.js 官网](https://nodejs.org/)安装 20.20.2 或更新版本。缺少 Codex 时，按 [OpenAI 官方 Codex CLI 安装说明](https://learn.chatgpt.com/docs/codex/cli)安装。仅安装或登录 ChatGPT Desktop 不代表插件已经可以调用 CLI，以以上命令和后面的连接检测为准。
 
 2. 将项目克隆到固定目录，注册本地连接，并在这台 Mac 登录：
 

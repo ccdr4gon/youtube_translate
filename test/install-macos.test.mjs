@@ -94,7 +94,7 @@ test('Windows 统一入口仍调用原 PowerShell 安装器，预生成不修改
   }
   writeFileSync(path.join(root,'package.json'),JSON.stringify({type:'module'}));
   const result=spawnSync(process.execPath,[path.join(root,'scripts/install.mjs'),'--prepare-only','--codex-path',process.execPath],
-    {encoding:'utf8',windowsHide:true,timeout:20000});
+    {encoding:'utf8',windowsHide:true,timeout:20000,env:{...process.env,Path:path.dirname(process.execPath)+path.delimiter+process.env.Path}});
   assert.equal(result.status,0,result.stderr);
   assert.match(result.stdout,/Registry registration skipped/);
   const manifest=JSON.parse(readFileSync(path.join(root,'.local','com.local.youtube_luna.json'),'utf8'));

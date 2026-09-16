@@ -25,7 +25,10 @@ try {
       const removed = uninstallMac({ root });
       console.log(`已移除 ${removed.length} 个浏览器注册项。项目、本地文件和登录信息均保留。`);
     } else {
-      if (Number(process.versions.node.split('.')[0]) < 22) throw new Error('需要 Node.js 22 或更新版本。');
+      const [major, minor, patch] = process.versions.node.split('.').map(Number);
+      if (major < 20 || (major === 20 && (minor < 20 || (minor === 20 && patch < 2)))) {
+        throw new Error('需要 Node.js 20.20.2 或更新版本。');
+      }
       const codexPath = findMacCodex({ specified: values['codex-path'] });
       console.log(`Codex: ${checkCodex(codexPath)}`);
       const { launcher, targets } = installMac({ root, codexPath, prepareOnly: values['prepare-only'] });

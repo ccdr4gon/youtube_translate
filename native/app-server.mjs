@@ -80,7 +80,7 @@ export function createAppServerRunner({ command = resolveCodex(), prefixArgs = [
         }
       } else notify(message);
     });
-    ready = rpc('initialize', { clientInfo: { name: 'youtube_luna', version: '0.1.5' }, capabilities: { experimentalApi: true } })
+    ready = rpc('initialize', { clientInfo: { name: 'youtube_luna', version: '0.1.6' }, capabilities: { experimentalApi: true } })
       .then(() => child.stdin.write('{"method":"initialized"}\n'));
     return ready;
   }
