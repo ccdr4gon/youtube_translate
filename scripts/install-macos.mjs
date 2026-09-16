@@ -40,11 +40,22 @@ export function installMac({ root, home = homedir(), nodePath = process.execPath
   const launcher = path.join(local, 'native-host.sh');
   const targets = prepareOnly ? [] : macManifestPaths(home);
   // Validate all registrations before changing files. A second checkout must not
-  // silently take over another installed copy of the same personal extension.
+  // silently take over another installed copy. A moved/deleted checkout can be
+  // repaired only when its old launcher is confirmed missing (not unreadable).
   for (const target of targets) {
     if (!existsSync(target)) continue;
     const registered = JSON.parse(readFileSync(target, 'utf8'));
-    if (registered.path !== launcher) throw new Error(`另一个项目目录已注册 Luna：${target}。请先从原目录卸载。`);
+    if (registered.path !== launcher) {
+      let missing = false;
+      if (registered.name === HOST_NAME && typeof registered.path === 'string' && path.isAbsolute(registered.path)) {
+        try { statSync(registered.path); }
+        catch (error) {
+          if (error.code === 'ENOENT' || error.code === 'ENOTDIR') missing = true;
+          else throw error;
+        }
+      }
+      if (!missing) throw new Error(`另一个项目目录已注册 Luna：${target}。请先从原目录卸载。`);
+    }
   }
   mkdirSync(local, { recursive: true });
   writeFileSync(path.join(local, 'runtime.json'), JSON.stringify({ codexPath }, null, 2) + '\n', { mode: 0o600 });

@@ -48,7 +48,8 @@ test('预生成不注册浏览器，卸载跳过其他目录的注册，冲突�
   const targets=macManifestPaths(options.home);
   assert.ok(targets.every(target=>!existsSync(target)));
   const target=targets[1]; mkdirSync(path.dirname(target),{recursive:true});
-  const other=JSON.stringify({name:'com.local.youtube_luna',path:'/other/.local/native-host.sh'});
+  const otherLauncher=path.join(options.scratch,'other-host.sh'); writeFileSync(otherLauncher,'existing installation');
+  const other=JSON.stringify({name:'com.local.youtube_luna',path:otherLauncher});
   writeFileSync(target,other);
   const runtime=path.join(options.root,'.local','runtime.json');
   const before=readFileSync(runtime,'utf8');
@@ -100,4 +101,19 @@ test('Windows 统一入口仍调用原 PowerShell 安装器，预生成不修改
   const manifest=JSON.parse(readFileSync(path.join(root,'.local','com.local.youtube_luna.json'),'utf8'));
   assert.ok(manifest.path.endsWith('native-host.cmd'));
   assert.deepEqual(manifest.allowed_origins,[`chrome-extension://${EXTENSION_ID}/`]);
+});
+
+
+test('项目改名后重新安装修复失效登记，不删除项目或创建旧目录', t => {
+  const options=fixture(t);
+  const oldLauncher=path.join(options.scratch,'youtube_translate-main','.local','native-host.sh');
+  const keep=path.join(options.root,'keep.txt');writeFileSync(keep,'user file');
+  for (const target of macManifestPaths(options.home)) {
+    mkdirSync(path.dirname(target),{recursive:true});
+    writeFileSync(target,JSON.stringify({name:'com.local.youtube_luna',path:oldLauncher}));
+  }
+  const {launcher,targets}=installMac(options);
+  assert.ok(existsSync(launcher)); assert.ok(!existsSync(oldLauncher));
+  for (const target of targets) assert.equal(JSON.parse(readFileSync(target,'utf8')).path,launcher);
+  assert.equal(readFileSync(keep,'utf8'),'user file');
 });
